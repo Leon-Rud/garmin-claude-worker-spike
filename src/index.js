@@ -129,44 +129,9 @@ function authorized(req, url, env) {
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
 
-// ponytail: TEMP debug for spike B. Records request shape (no header VALUES, no body data) so we can see
-// what claude.ai sends. Readable at GET /debug-last. Delete before the kit ships.
-async function debugRecord(env, entry) {
-  try {
-    const log = (await env.TOKENS.get("debug_log", "json")) || [];
-    log.unshift(entry);
-    await env.TOKENS.put("debug_log", JSON.stringify(log.slice(0, 25)), { expirationTtl: 86400 });
-  } catch {}
-}
-
 export default {
-  async fetch(req, env, ctx) {
+  async fetch(req, env) {
     const url = new URL(req.url);
-    if (url.pathname === "/debug-last") {
-      return json((await env.TOKENS.get("debug_log", "json")) || []);
-    }
-    let rpcMethod = null;
-    try { rpcMethod = req.method === "POST" ? (await req.clone().json())?.method ?? "(batch/none)" : null; } catch { rpcMethod = "(unparseable)"; }
-    const authInfo = AUTH_HEADERS.map((n) => {
-      const v = req.headers.get(n);
-      if (v == null) return null;
-      const bare = v.trim().replace(/^bearer\s+/i, "");
-      return `${n}: len=${v.length} bearerPrefix=${/^bearer\s/i.test(v.trim())} match=${bare === env.MCP_TOKEN}`;
-    }).filter(Boolean);
-    const res = await handleFetch(req, env, url);
-    ctx.waitUntil(debugRecord(env, {
-      t: new Date().toISOString(), method: req.method, path: url.pathname.replace(/^\/t\/[^/]+\//, "/t/<tok>/"),
-      rpc: rpcMethod, status: res.status, auth: authInfo, expectedLen: env.MCP_TOKEN?.length ?? 0,
-      headerNames: [...req.headers.keys()].filter((k) => !k.startsWith("cf-")).sort(),
-      accept: req.headers.get("accept"), ua: req.headers.get("user-agent"),
-      protoVer: req.headers.get("mcp-protocol-version"),
-    }));
-    return res;
-  },
-};
-
-async function handleFetch(req, env, url) {
-  {
     const isMcp = url.pathname === "/mcp" || /^\/t\/[^/]+\/mcp$/.test(url.pathname);
     if (!isMcp) return new Response("garmin-claude-worker: POST /mcp", { status: 404 });
     // 403, not 401: a 401 makes claude.ai assume OAuth and pre-select "Sign in now", which fails for this server.
@@ -187,5 +152,5 @@ async function handleFetch(req, env, url) {
     } catch (err) {
       return json({ jsonrpc: "2.0", id: msg.id ?? null, error: { code: err.code ?? -32603, message: err.message } });
     }
-  }
-}
+  },
+};
