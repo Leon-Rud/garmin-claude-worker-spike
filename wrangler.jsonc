@@ -5,6 +5,6 @@
   "compatibility_date": "2025-09-01",
   "observability": { "enabled": false },
   // Caches the 24h Garmin access token so the key is not re-minted on every call (Garmin 429s after ~16 mints/hour).
-  // "Deploy to Cloudflare" provisions this namespace in the buyer's account automatically.
-  "kv_namespaces": [{ "binding": "TOKENS", "id": "garmin_claude_tokens" }]
+  // No "id": wrangler deploy auto-creates the namespace in the buyer's account (automatic provisioning).
+  "kv_namespaces": [{ "binding": "TOKENS" }]
 }
