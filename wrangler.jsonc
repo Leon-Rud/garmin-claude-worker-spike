@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "garmin-claude",
+  "main": "src/index.js",
+  "compatibility_date": "2025-09-01",
+  "observability": { "enabled": false },
+  // Caches the 24h Garmin access token so the key is not re-minted on every call (Garmin 429s after ~16 mints/hour).
+  // "Deploy to Cloudflare" provisions this namespace in the buyer's account automatically.
+  "kv_namespaces": [{ "binding": "TOKENS", "id": "garmin_claude_tokens" }]
+}

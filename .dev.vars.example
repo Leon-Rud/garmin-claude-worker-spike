@@ -1,0 +1,2 @@
+GARMIN_PERSONAL_API_KEY=paste-your-garmin-key # from Garmin Connect > Settings > Personal API Key
+MCP_TOKEN=make-up-a-long-random-password # you paste this same value into Claude

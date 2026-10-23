@@ -1,0 +1,26 @@
+{
+  "name": "garmin-claude-worker",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ask Claude about your Garmin sleep and HRV from any device. Runs in your own Cloudflare account on Garmin's official Personal API.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  },
+  "cloudflare": {
+    "bindings": {
+      "GARMIN_PERSONAL_API_KEY": {
+        "description": "Your Garmin **Personal API key**. Create it at [Garmin Connect > Settings > Personal API Key](https://connect.garmin.com/app/settings/personalApiToken). Stored as a secret in *your* Cloudflare account."
+      },
+      "MCP_TOKEN": {
+        "description": "A long random password you choose. Claude must send it to read your data. Keep a copy: you paste it into Claude in the next step."
+      },
+      "TOKENS": {
+        "description": "Caches Garmin's 24-hour access token. Leave as is."
+      }
+    }
+  }
+}
