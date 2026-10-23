@@ -151,12 +151,13 @@ export default {
       const v = req.headers.get(n);
       if (v == null) return null;
       const bare = v.trim().replace(/^bearer\s+/i, "");
-      return `${n}: len=${v.length} bearerPrefix=${/^bearer\s/i.test(v.trim())} match=${bare === env.MCP_TOKEN}`;
+      // match = same info the 200/403 status already gives; no length or other derivative of the secret
+      return `${n}: present bearerPrefix=${/^bearer\s/i.test(v.trim())} hasOuterSpaces=${v !== v.trim()} match=${bare === env.MCP_TOKEN}`;
     }).filter(Boolean);
     const res = await handleFetch(req, env, url);
     ctx.waitUntil(debugRecord(env, {
       t: new Date().toISOString(), method: req.method, path: url.pathname.replace(/^\/t\/[^/]+\//, "/t/<tok>/"),
-      rpc: rpcMethod, status: res.status, auth: authInfo, expectedLen: env.MCP_TOKEN?.length ?? 0,
+      rpc: rpcMethod, status: res.status, auth: authInfo, tokenSecretSet: !!env.MCP_TOKEN,
       headerNames: [...req.headers.keys()].filter((k) => !k.startsWith("cf-")).sort(),
       accept: req.headers.get("accept"), ua: req.headers.get("user-agent"),
       protoVer: req.headers.get("mcp-protocol-version"),
