@@ -112,13 +112,17 @@ async function handle(env, msg) {
   }
 }
 
-// Auth: the buyer's MCP_TOKEN, either as "Authorization: Bearer <token>" (claude.ai Request headers)
+// Auth: the buyer's MCP_TOKEN, in any header claude.ai's "Request headers" dropdown offers
+// (authorization / x-api-key / x-auth-token), raw or as "Bearer <token>",
 // or as a path segment /t/<token>/mcp (fallback if the Request-headers field is not available).
-// ponytail: spike supports both to learn which one claude.ai lets buyers use; kit keeps one.
+// ponytail: spike accepts all to learn what buyers pick; kit keeps the one the guide tells them to use.
+const AUTH_HEADERS = ["authorization", "x-api-key", "x-auth-token"];
 function authorized(req, url, env) {
   if (!env.MCP_TOKEN) return false;
-  const h = req.headers.get("authorization") || "";
-  if (h.toLowerCase().startsWith("bearer ") && h.slice(7).trim() === env.MCP_TOKEN) return true;
+  for (const name of AUTH_HEADERS) {
+    const v = (req.headers.get(name) || "").trim().replace(/^bearer\s+/i, "");
+    if (v && v === env.MCP_TOKEN) return true;
+  }
   const m = url.pathname.match(/^\/t\/([^/]+)\/mcp$/);
   return !!m && m[1] === env.MCP_TOKEN;
 }
@@ -130,7 +134,8 @@ export default {
     const url = new URL(req.url);
     const isMcp = url.pathname === "/mcp" || /^\/t\/[^/]+\/mcp$/.test(url.pathname);
     if (!isMcp) return new Response("garmin-claude-worker: POST /mcp", { status: 404 });
-    if (!authorized(req, url, env)) return json({ error: "unauthorized" }, 401);
+    // 403, not 401: a 401 makes claude.ai assume OAuth and pre-select "Sign in now", which fails for this server.
+    if (!authorized(req, url, env)) return json({ error: "forbidden: missing or wrong MCP_TOKEN header" }, 403);
     if (req.method === "GET") return new Response(null, { status: 405 }); // no server-initiated stream
     if (req.method === "DELETE") return new Response(null, { status: 200 });
     if (req.method !== "POST") return new Response(null, { status: 405 });

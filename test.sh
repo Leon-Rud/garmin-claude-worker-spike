@@ -11,7 +11,7 @@ T=$(mktemp -d)
 for i in $(seq 1 90); do curl -s -o /dev/null --max-time 2 "$BASE/" && break; sleep 2; done
 
 c=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/mcp" -H "$H" -d '{"jsonrpc":"2.0","id":1,"method":"ping"}')
-[ "$c" = "401" ] || fail "no token should be 401, got $c"
+[ "$c" = "403" ] || fail "no token should be 403, got $c"
 
 c=$(post /mcp "$T/init" '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}')
 [ "$c" = "200" ] && grep -q '"serverInfo"' "$T/init" || fail "initialize: $c $(cat $T/init)"
@@ -33,6 +33,14 @@ echo "get_hrv    -> $(sed 's/\\"/"/g' $T/hrv | grep -o '"last_night_avg":[0-9]*,
 c=$(curl -s -o "$T/path" -w '%{http_code}' -X POST "$BASE/t/$TOK/mcp" -H "$H" -d '{"jsonrpc":"2.0","id":5,"method":"ping"}')
 [ "$c" = "200" ] || fail "path token auth: $c"
 c=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/t/wrong/mcp" -H "$H" -d '{"jsonrpc":"2.0","id":6,"method":"ping"}')
-[ "$c" = "401" ] || fail "wrong path token should be 401, got $c"
+[ "$c" = "403" ] || fail "wrong path token should be 403, got $c"
+
+# Every header form claude.ai's Request-headers dropdown can produce
+for hdr in "x-auth-token: $TOK" "x-api-key: $TOK" "authorization: $TOK" "x-auth-token: Bearer $TOK"; do
+  c=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/mcp" -H "$H" -H "$hdr" -d '{"jsonrpc":"2.0","id":7,"method":"ping"}')
+  [ "$c" = "200" ] || fail "header form '${hdr%%:*}' should be 200, got $c"
+done
+c=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/mcp" -H "$H" -H "x-auth-token: wrong" -d '{"jsonrpc":"2.0","id":8,"method":"ping"}')
+[ "$c" = "403" ] || fail "wrong x-auth-token should be 403, got $c"
 
 echo "worker checks: all passed"
