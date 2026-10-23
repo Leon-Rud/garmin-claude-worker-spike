@@ -23,7 +23,8 @@ async function bearer(env, force = false) {
   if (r.status === 401 || r.status === 403)
     throw new Error("Garmin rejected the API key (expired or deleted). Create a new one in Garmin Connect > Settings > Personal API Key, then update the GARMIN_PERSONAL_API_KEY secret.");
   if (r.status === 429) throw new Error("Garmin is rate-limiting token requests. Wait a few minutes and try again.");
-  if (!r.ok) throw new Error(`Token request failed: HTTP ${r.status}`);
+  // ponytail: TEMP diagnostic detail (status page snippet, no key); trim before the kit ships
+  if (!r.ok) throw new Error(`Token request failed: HTTP ${r.status} server=${r.headers.get("server")} body=${(await r.text()).replace(/\s+/g, " ").slice(0, 300)}`);
   const token = (await r.text()).trim();
   memo = { token, exp: jwtExp(token) };
   await env.TOKENS.put(KV_KEY, JSON.stringify(memo), { expirationTtl: Math.max(60, Math.floor(memo.exp - now)) });
